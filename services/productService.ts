@@ -7,7 +7,9 @@ export async function getProducts(): Promise<Omit<Product, 'notes' | 'lastUpdate
   // we'll fetch the HTML and use the browser's DOMParser.
   // This is more brittle than a proper scraper but will work for this case.
 
-  // We'll use a proxy to get around CORS issues when fetching the page.
+// For future consideration: To make this more robust, a backend service could be created
+// to handle scraping. This would avoid CORS issues without a third-party proxy and
+// could be made more resilient to page structure changes with more advanced parsing libraries.
   const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(PRODUCTS_URL)}`;
 
   try {
