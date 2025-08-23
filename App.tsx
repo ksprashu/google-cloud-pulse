@@ -78,7 +78,7 @@ const App: React.FC = () => {
       const oneWeekAgo = new Date();
       oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
-      notes.forEach(note => {
+      notes.forEach((note: ProcessedNote & { releaseNotesUrl: string }) => {
         if (note.productName === 'Unknown Product') return;
 
         if (!productsMap.has(note.productName)) {
@@ -87,6 +87,7 @@ const App: React.FC = () => {
             notes: [],
             lastUpdated: new Date(0),
             isRecent: false,
+            releaseNotesUrl: note.releaseNotesUrl, // Set it for the first note
           });
         }
         
@@ -98,9 +99,10 @@ const App: React.FC = () => {
         }
       });
 
-      // Sort notes within each product and set recent flag
+      // Sort notes within each product, limit to latest 3, and set recent flag
       productsMap.forEach(product => {
         product.notes.sort((a, b) => b.updated.getTime() - a.updated.getTime());
+        product.notes = product.notes.slice(0, 3); // Keep only the latest 3
         product.isRecent = product.lastUpdated > oneWeekAgo;
       });
 

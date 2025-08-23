@@ -1,52 +1,73 @@
 
-import type { RawReleaseNote, ProcessedNote } from '../types';
+import type { RawReleaseNote, ProcessedNote, ProductFeed } from '../types';
 import { analyzeReleaseNote } from './geminiService';
+import { getProductFeeds } from './productService';
 
-const RSS_FEED_URL = 'https://cloud.google.com/feeds/gcp-release-notes.xml';
-// Using rss2json to convert RSS to JSON and bypass CORS issues, which is more reliable than a generic proxy.
-const API_URL = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(RSS_FEED_URL)}`;
+const API_URL_BASE = `https://api.rss2json.com/v1/api.json?rss_url=`;
 
-async function parseRssFeed(): Promise<RawReleaseNote[]> {
-  const response = await fetch(API_URL);
+async function parseRssFeed(feedUrl: string): Promise<RawReleaseNote[]> {
+  const response = await fetch(`${API_URL_BASE}${encodeURIComponent(feedUrl)}`);
   if (!response.ok) {
-    throw new Error(`Failed to fetch RSS feed: ${response.statusText}`);
+    // Fail silently for individual feed errors
+    console.warn(`Failed to fetch RSS feed: ${feedUrl}`);
+    return [];
   }
   
   const data = await response.json();
   if (data.status !== 'ok') {
-    throw new Error('Failed to parse RSS feed via API. The service may be down.');
+    console.warn(`Failed to parse RSS feed via API for ${feedUrl}. The service may be down or the feed is invalid.`);
+    return [];
   }
 
-  // The rss2json API returns a JSON object with an `items` array
   return data.items.map((item: any) => ({
-    id: item.guid, // guid is a unique identifier for the entry
+    id: item.guid,
     title: item.title,
-    summary: item.description, // description contains the HTML content
-    updated: item.pubDate, // pubDate is the publication date string
+    summary: item.description,
+    updated: item.pubDate,
   }));
 }
 
 export async function getAndProcessReleaseNotes(): Promise<ProcessedNote[]> {
-  const rawNotes = await parseRssFeed();
+  const productFeeds = await getProductFeeds();
   
-  // To avoid overwhelming the API, let's process a limited number of recent notes.
-  // This can be adjusted.
-  const notesToProcess = rawNotes.slice(0, 50);
+  const allNotes: (ProcessedNote & { productNameFromFeed: string, releaseNotesUrl: string })[] = [];
 
-  const processingPromises = notesToProcess.map(async (note) => {
-    // The summary can contain HTML, let's strip it for a cleaner prompt.
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = note.summary;
-    const cleanSummary = tempDiv.textContent || tempDiv.innerText || "";
+  for (const feed of productFeeds) {
+    const rawNotes = await parseRssFeed(feed.rssUrl);
 
-    const analyzedData = await analyzeReleaseNote(note.title, cleanSummary);
+    // Process the 3 most recent notes for each product feed
+    const notesToProcess = rawNotes.slice(0, 3);
+
+    const processingPromises = notesToProcess.map(async (note) => {
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = note.summary;
+      const cleanSummary = tempDiv.textContent || tempDiv.innerText || "";
+
+      // Pass the official product name to assist the AI
+      const analyzedData = await analyzeReleaseNote(note.title, cleanSummary, feed.productName);
+
+      return {
+        ...analyzedData,
+        id: note.id,
+        updated: new Date(note.updated),
+        originalTitle: note.title,
+        productNameFromFeed: feed.productName, // Keep track of the source
+        releaseNotesUrl: feed.releaseNotesUrl,
+      };
+    });
+
+    const processed = await Promise.all(processingPromises);
+    allNotes.push(...processed);
+  }
+
+  // The Gemini analysis for productName can sometimes be inconsistent.
+  // We'll use the productName from the feed source as the primary grouping key
+  // but retain the analyzed name if it's more specific.
+  return allNotes.map(note => {
+    // This logic can be refined. For now, we prioritize the feed's name for consistency.
     return {
-      ...analyzedData,
-      id: note.id,
-      updated: new Date(note.updated),
-      originalTitle: note.title,
-    };
+        ...note,
+        productName: note.productNameFromFeed,
+    }
   });
-
-  return Promise.all(processingPromises);
 }

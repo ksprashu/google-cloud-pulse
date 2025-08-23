@@ -24,4 +24,12 @@ export interface Product {
   notes: ProcessedNote[];
   lastUpdated: Date;
   isRecent: boolean;
+  releaseNotesUrl?: string;
+}
+
+export interface ProductFeed {
+  id: string;
+  productName: string;
+  releaseNotesUrl: string;
+  rssUrl: string;
 }
