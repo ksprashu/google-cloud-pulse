@@ -1,12 +1,16 @@
-
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import type { ProcessedNote, Product } from './types';
 import { getAndProcessReleaseNotes } from './services/rssService';
 import Spinner from './components/Spinner';
 import ErrorDisplay from './components/ErrorDisplay';
 import ProductTile from './components/ProductTile';
+import { GoogleCloudIcon, SunIcon, MoonIcon } from './components/icons';
 
 const FAVORITES_KEY = 'gcpReleaseNotesFavorites';
+const THEME_KEY = 'gcpReleaseNotesTheme';
+
+type Theme = 'light' | 'dark';
+type SortOption = 'latest' | 'alpha-az' | 'alpha-za';
 
 const App: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -18,8 +22,22 @@ const App: React.FC = () => {
   const [viewMode, setViewMode] = useState<'all' | 'favorites'>('all');
   const [selectedChangeType, setSelectedChangeType] = useState<string>('all');
   const [selectedReleaseStage, setSelectedReleaseStage] = useState<string>('all');
+  const [sortOption, setSortOption] = useState<SortOption>('latest');
 
-  
+  const [theme, setTheme] = useState<Theme>(() => {
+    const storedTheme = localStorage.getItem(THEME_KEY);
+    return (storedTheme as Theme) || 'dark';
+  });
+
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    localStorage.setItem(THEME_KEY, theme);
+  }, [theme]);
+
   const [favorites, setFavorites] = useState<Set<string>>(() => {
     try {
       const storedFavorites = localStorage.getItem(FAVORITES_KEY);
@@ -122,40 +140,51 @@ const App: React.FC = () => {
   const filteredAndSortedProducts = useMemo(() => {
     const lowercasedFilter = searchTerm.toLowerCase();
     
-    return products
+    let processedProducts = products
       .filter(product => {
-        // View Mode Filter
         if (viewMode === 'favorites' && !favorites.has(product.productName)) {
             return false;
         }
-
-        // Search Term Filter
-        if (!product.productName.toLowerCase().includes(lowercasedFilter)) {
+        if (searchTerm && !product.productName.toLowerCase().includes(lowercasedFilter)) {
             return false;
         }
-
-        // Change Type Filter
         if (selectedChangeType !== 'all' && !product.notes.some(note => note.changeType === selectedChangeType)) {
             return false;
         }
-
-        // Release Stage Filter
         if (selectedReleaseStage !== 'all' && !product.notes.some(note => note.releaseStage === selectedReleaseStage)) {
             return false;
         }
-        
         return true;
-      })
-      .sort((a, b) => {
+      });
+      
+      // Primary sort: Favorites first
+      processedProducts.sort((a, b) => {
         const aIsFav = favorites.has(a.productName);
         const bIsFav = favorites.has(b.productName);
-
         if (aIsFav && !bIsFav) return -1;
         if (!aIsFav && bIsFav) return 1;
-
-        return b.lastUpdated.getTime() - a.lastUpdated.getTime();
+        return 0;
       });
-  }, [products, searchTerm, favorites, viewMode, selectedChangeType, selectedReleaseStage]);
+
+      // Secondary sort based on user selection
+      const favoritesBoundary = processedProducts.findIndex(p => !favorites.has(p.productName));
+      const favs = favoritesBoundary === -1 ? [...processedProducts] : processedProducts.slice(0, favoritesBoundary);
+      const nonFavs = favoritesBoundary === -1 ? [] : processedProducts.slice(favoritesBoundary);
+      
+      const sortFn = (a: Product, b: Product) => {
+        switch (sortOption) {
+          case 'alpha-az':
+            return a.productName.localeCompare(b.productName);
+          case 'alpha-za':
+            return b.productName.localeCompare(a.productName);
+          case 'latest':
+          default:
+            return b.lastUpdated.getTime() - a.lastUpdated.getTime();
+        }
+      };
+
+      return [...favs.sort(sortFn), ...nonFavs.sort(sortFn)];
+  }, [products, searchTerm, favorites, viewMode, selectedChangeType, selectedReleaseStage, sortOption]);
 
 
   if (isLoading) {
@@ -171,48 +200,75 @@ const App: React.FC = () => {
     value: string;
     onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
     options: string[];
-  }> = ({ label, value, onChange, options }) => (
+    allLabel?: string;
+    children?: React.ReactNode;
+  }> = ({ label, value, onChange, options, allLabel = "All", children }) => (
     <div className="flex-1 min-w-[150px]">
-        <label htmlFor={label} className="block text-xs font-medium text-slate-400 mb-1">{label}</label>
+        <label htmlFor={label} className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">{label}</label>
         <select
             id={label}
             value={value}
             onChange={onChange}
-            className="w-full px-3 py-2 text-slate-200 bg-slate-800 border border-slate-700 rounded-md focus:ring-2 focus:ring-cyan-500 focus:outline-none text-sm"
+            className="w-full px-3 py-2 text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-md focus:ring-2 focus:ring-cyan-500 focus:outline-none text-sm"
         >
-            <option value="all">All</option>
-            {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+          {children ? (
+            children
+          ) : (
+            <>
+              <option value="all">{allLabel}</option>
+              {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+            </>
+          )}
         </select>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-slate-900 font-sans">
-      <header className="py-8 px-4 sm:px-6 lg:px-8 bg-slate-900/80 backdrop-blur-sm sticky top-0 z-10 border-b border-slate-800">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 font-sans">
+      <header className="py-8 px-4 sm:px-6 lg:px-8 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm sticky top-0 z-10 border-b border-slate-200 dark:border-slate-800">
         <div className="max-w-7xl mx-auto">
-          <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-500">
-            GCP Release Notes Explorer
-          </h1>
-          <p className="mt-2 text-lg text-slate-400">
-            AI-powered insights into the latest Google Cloud updates.
-          </p>
+          <div className="flex justify-between items-start">
+            <div>
+              <div className="flex items-center gap-4">
+                  <GoogleCloudIcon className="w-12 h-auto" />
+                  <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-500 to-indigo-600">
+                    Google Cloud Pulse
+                  </h1>
+              </div>
+              <p className="mt-2 text-lg text-slate-600 dark:text-slate-400">
+                AI-powered insights into the latest Google Cloud updates.
+              </p>
+            </div>
+            <button
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              className="p-2 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors"
+              aria-label="Toggle theme"
+            >
+              {theme === 'dark' ? <SunIcon className="w-6 h-6" /> : <MoonIcon className="w-6 h-6" />}
+            </button>
+          </div>
           <div className="mt-6 flex flex-col gap-4">
              <input
                 type="text"
                 placeholder="Search for a product..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full max-w-lg px-4 py-2 text-slate-200 bg-slate-800 border border-slate-700 rounded-md focus:ring-2 focus:ring-cyan-500 focus:outline-none"
+                className="w-full max-w-lg px-4 py-2 text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-md focus:ring-2 focus:ring-cyan-500 focus:outline-none"
              />
              <div className="flex flex-wrap items-end gap-4">
-                {/* All/Favorites Toggle */}
                 <div>
-                    <span className="block text-xs font-medium text-slate-400 mb-1">View</span>
-                    <div className="relative flex w-fit p-1 bg-slate-800 border border-slate-700 rounded-md">
-                        <button onClick={() => setViewMode('all')} className={`px-3 py-1 text-sm rounded ${viewMode === 'all' ? 'bg-cyan-500 text-white' : 'text-slate-300 hover:bg-slate-700'}`}>All</button>
-                        <button onClick={() => setViewMode('favorites')} className={`px-3 py-1 text-sm rounded ${viewMode === 'favorites' ? 'bg-cyan-500 text-white' : 'text-slate-300 hover:bg-slate-700'}`}>Favorites</button>
+                    <span className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">View</span>
+                    <div className="relative flex w-fit p-1 bg-slate-200 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-md">
+                        <button onClick={() => setViewMode('all')} className={`px-3 py-1 text-sm rounded transition-colors ${viewMode === 'all' ? 'bg-cyan-500 text-white' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700'}`}>All</button>
+                        <button onClick={() => setViewMode('favorites')} className={`px-3 py-1 text-sm rounded transition-colors ${viewMode === 'favorites' ? 'bg-cyan-500 text-white' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700'}`}>Favorites</button>
                     </div>
                 </div>
+                
+                <FilterSelect label="Sort By" value={sortOption} onChange={e => setSortOption(e.target.value as SortOption)} options={[]}>
+                    <option value="latest">Latest Changes First</option>
+                    <option value="alpha-az">Alphabetical (A-Z)</option>
+                    <option value="alpha-za">Alphabetical (Z-A)</option>
+                </FilterSelect>
 
                 <FilterSelect label="Change Type" value={selectedChangeType} onChange={e => setSelectedChangeType(e.target.value)} options={changeTypes} />
                 <FilterSelect label="Release Stage" value={selectedReleaseStage} onChange={e => setSelectedReleaseStage(e.target.value)} options={releaseStages} />
@@ -235,13 +291,13 @@ const App: React.FC = () => {
             </div>
           ) : (
             <div className="text-center py-16">
-                <p className="text-2xl font-semibold text-slate-400 mb-2">No Products Found</p>
-                <p className="text-slate-500">Try adjusting your search or filter criteria.</p>
+                <p className="text-2xl font-semibold text-slate-500 dark:text-slate-400 mb-2">No Products Found</p>
+                <p className="text-slate-600 dark:text-slate-500">Try adjusting your search or filter criteria.</p>
             </div>
           )}
         </div>
       </main>
-      <footer className="text-center py-6 text-sm text-slate-600">
+      <footer className="text-center py-6 text-sm text-slate-500 dark:text-slate-600">
         Powered by Google Gemini. Data from GCP Release Notes RSS.
       </footer>
     </div>

@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import type { AnalyzedNoteData } from '../types';
 
@@ -17,7 +16,7 @@ const responseSchema = {
     },
     changeType: {
       type: Type.STRING,
-      description: "The primary nature of the update. Classify as one of: 'Feature', 'Security', 'Bug Fix', 'Improvement', 'Documentation', 'Deprecation', 'General Announcement'.",
+      description: "The primary nature of the update. Classify as one of: 'Feature', 'Security', 'Bug Fix', 'Improvement', 'Documentation', 'Deprecation', 'Announcement'.",
     },
     releaseStage: {
       type: Type.STRING,
