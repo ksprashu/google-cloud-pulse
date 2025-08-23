@@ -1,25 +1,13 @@
-const productSlugMap: Record<string, string> = {
-  'BigQuery': 'bigquery',
-  'Compute Engine': 'compute',
-  'Cloud Storage': 'storage',
-  'Google Kubernetes Engine': 'kubernetes-engine',
-  'Cloud Functions': 'functions',
-  'Cloud Run': 'run',
-  'Cloud SQL': 'sql',
-  'IAM': 'iam',
-  'Virtual Private Cloud': 'vpc',
-  'Cloud Logging': 'logging',
-  'Cloud Monitoring': 'monitoring',
-  'Apigee': 'apigee',
-  'Vertex AI': 'vertex-ai',
-};
-
 export function generateProductLink(productName: string): string {
-  const slug = productSlugMap[productName];
-  if (slug) {
-    return `https://cloud.google.com/${slug}/docs/release-notes`;
-  }
-  // Fallback to a search on the release notes page
-  const query = encodeURIComponent(`${productName} release notes`);
-  return `https://cloud.google.com/release-notes/all?q=${query}`;
+  // Generate a slug by lowercasing and replacing spaces with hyphens.
+  const slug = productName.toLowerCase().replace(/\s+/g, '-');
+
+  // A few products have special names or don't follow the pattern,
+  // we can add exceptions here if needed.
+  // For now, this dynamic approach is better than a hardcoded map.
+
+  // Most product pages are at cloud.google.com/<slug>
+  // and release notes are often under /docs/release-notes
+  // We will link to the main product page as a safer default.
+  return `https://cloud.google.com/${slug}`;
 }

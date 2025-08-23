@@ -1,7 +1,6 @@
 import React from 'react';
 import type { Product } from '../types';
 import { SparkleIcon, HeartIcon, CalendarIcon, ProductIcon } from './icons';
-import { generateProductLink } from '../utils/productUtils';
 
 interface ProductTileProps {
   product: Product;
@@ -31,11 +30,10 @@ const ProductTile: React.FC<ProductTileProps> = ({ product, isFavorite, onToggle
   };
 
   const recentNotes = product.notes.slice(0, 3);
-  const productLink = generateProductLink(product.productName);
 
   return (
     <a 
-      href={productLink} 
+      href={product.releaseNotesUrl}
       target="_blank" 
       rel="noopener noreferrer"
       className="flex flex-col h-full p-6 transition-all duration-300 transform bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 hover:shadow-2xl hover:shadow-cyan-500/10 hover:-translate-y-1 group"
