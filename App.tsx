@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import type { ProcessedNote, Product } from './types';
-import { getAndProcessReleaseNotes } from './services/rssService';
 import Spinner from './components/Spinner';
 import ErrorDisplay from './components/ErrorDisplay';
 import ProductTile from './components/ProductTile';
@@ -72,7 +71,11 @@ const App: React.FC = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const notes = await getAndProcessReleaseNotes();
+      const response = await fetch('/api/release-notes');
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const notes: ProcessedNote[] = await response.json();
       
       const productsMap: Map<string, Product> = new Map();
       const oneWeekAgo = new Date();
@@ -93,14 +96,14 @@ const App: React.FC = () => {
         const product = productsMap.get(note.productName)!;
         product.notes.push(note);
 
-        if (note.updated > product.lastUpdated) {
-            product.lastUpdated = note.updated;
+        if (new Date(note.updated) > product.lastUpdated) {
+            product.lastUpdated = new Date(note.updated);
         }
       });
 
       // Sort notes within each product and set recent flag
       productsMap.forEach(product => {
-        product.notes.sort((a, b) => b.updated.getTime() - a.updated.getTime());
+        product.notes.sort((a, b) => new Date(b.updated).getTime() - new Date(a.updated).getTime());
         product.isRecent = product.lastUpdated > oneWeekAgo;
       });
 
