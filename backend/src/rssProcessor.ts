@@ -1,14 +1,13 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import cheerio from 'cheerio';
-import type { RawReleaseNote, ProcessedNote, AnalyzedNoteData } from './types';
+import type { RawReleaseNote, ProcessedNote, AnalyzedNoteData, ProductFeed } from './types';
+import { getProductFeeds } from './productService'; // Assuming a productService exists in the backend
 
 if (!process.env.API_KEY) {
   throw new Error("API_KEY environment variable not set");
 }
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
-const RSS_FEED_URL = 'https://cloud.google.com/feeds/gcp-release-notes.xml';
 
 const responseSchema = {
     type: Type.OBJECT,
@@ -33,19 +32,21 @@ const responseSchema = {
     required: ["productName", "changeType", "releaseStage", "summary"],
   };
 
-async function analyzeReleaseNote(title: string, summary: string): Promise<AnalyzedNoteData> {
+async function analyzeReleaseNote(title: string, summary: string, productNameHint?: string): Promise<AnalyzedNoteData> {
     try {
       const prompt = `
         Analyze the following GCP release note content and extract the required information in JSON format.
         The product name should be the specific service, not just "Google Cloud".
+        If a 'productNameHint' is provided, it is the official product name and should be preferred.
         For 'releaseStage', use the official launch stage if specified.
         Create a concise summary of the update in about 10-15 words.
-
+        
         Title: "${title}"
         Summary: "${summary}"
+        ${productNameHint ? `productNameHint: "${productNameHint}"` : ''}
       `;
 
-      const result = await ai.models.generateContent({
+      const response = await ai.models.generateContent({
         model: "gemini-2.5-flash",
         contents: prompt,
         config: {
@@ -53,10 +54,10 @@ async function analyzeReleaseNote(title: string, summary: string): Promise<Analy
           responseSchema: responseSchema,
         },
       });
-
-      const jsonText = result.text || "";
+      
+      const jsonText = response.text || "";
       const data = JSON.parse(jsonText);
- 
+
       return {
           productName: data.productName || 'Unknown Product',
           changeType: data.changeType || 'Update',
@@ -76,10 +77,10 @@ async function analyzeReleaseNote(title: string, summary: string): Promise<Analy
     }
   }
 
-async function parseRssFeed(): Promise<RawReleaseNote[]> {
-    const response = await fetch(RSS_FEED_URL);
+async function parseRssFeed(feedUrl: string): Promise<RawReleaseNote[]> {
+    const response = await fetch(feedUrl);
     if (!response.ok) {
-      throw new Error(`Failed to fetch RSS feed: ${response.statusText}`);
+        throw new Error(`Failed to fetch RSS feed from ${feedUrl}. Status: ${response.status} ${response.statusText}`);
     }
 
     const xmlText = await response.text();
@@ -87,32 +88,61 @@ async function parseRssFeed(): Promise<RawReleaseNote[]> {
 
     const items: RawReleaseNote[] = [];
     $('entry').each((i, elem) => {
-      items.push({
-        id: $(elem).find('id').text(),
-        title: $(elem).find('title').text(),
-        summary: $(elem).find('content').text(),
-        updated: $(elem).find('updated').text(),
-      });
+        items.push({
+            id: $(elem).find('id').text(),
+            title: $(elem).find('title').text(),
+            summary: $(elem).find('content').text(),
+            updated: $(elem).find('updated').text(),
+        });
     });
     return items;
-  }
+}
 
-export async function getAndProcessReleaseNotes(): Promise<ProcessedNote[]> {
-    const rawNotes = await parseRssFeed();
-
-    const notesToProcess = rawNotes.slice(0, 50);
-
-    const processingPromises = notesToProcess.map(async (note) => {
-      const cleanSummary = cheerio.load(note.summary).text();
-
-      const analyzedData = await analyzeReleaseNote(note.title, cleanSummary);
-      return {
-        ...analyzedData,
-        id: note.id,
-        updated: new Date(note.updated),
-        originalTitle: note.title,
-      };
+export async function getAndProcessReleaseNotes(): Promise<(ProcessedNote & { releaseNotesUrl: string })[]> {
+    const productFeeds = await getProductFeeds();
+    
+    const allNotes: (ProcessedNote & { productNameFromFeed: string, releaseNotesUrl: string })[] = [];
+  
+    const processFeed = async (feed: ProductFeed) => {
+      const rawNotes = await parseRssFeed(feed.rssUrl);
+  
+      // Process the 3 most recent notes for each product feed
+      const notesToProcess = rawNotes.slice(0, 3);
+  
+      const processingPromises = notesToProcess.map(async (note) => {
+        const cleanSummary = cheerio.load(note.summary).text();
+  
+        // Pass the official product name to assist the AI
+        const analyzedData = await analyzeReleaseNote(note.title, cleanSummary, feed.productName);
+  
+        return {
+          ...analyzedData,
+          id: note.id,
+          updated: new Date(note.updated),
+          originalTitle: note.title,
+          productNameFromFeed: feed.productName, // Keep track of the source
+          releaseNotesUrl: feed.releaseNotesUrl,
+        };
+      });
+  
+      return Promise.all(processingPromises);
+    };
+  
+    const allProcessingPromises = productFeeds.map(processFeed);
+    const results = await Promise.allSettled(allProcessingPromises);
+  
+    results.forEach(result => {
+      if (result.status === 'fulfilled') {
+        allNotes.push(...result.value);
+      } else {
+        console.error(`Error processing a feed:`, result.reason);
+      }
     });
-
-    return Promise.all(processingPromises);
+  
+    return allNotes.map(note => {
+      return {
+          ...note,
+          productName: note.productNameFromFeed,
+      }
+    });
   }

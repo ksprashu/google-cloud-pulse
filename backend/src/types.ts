@@ -1,27 +1,33 @@
-
 export interface RawReleaseNote {
-  id: string;
-  title: string;
-  summary: string;
-  updated: string;
-}
+    id: string;
+    title: string;
+    summary: string;
+    updated: string;
+  }
+  
+  export interface AnalyzedNoteData {
+    productName: string;
+    changeType: string;
+    releaseStage: string;
+    summary: string;
+  }
+  
+  export interface ProcessedNote extends AnalyzedNoteData {
+    id: string;
+    updated: Date;
+    originalTitle: string;
+  }
+  
+  export interface Product {
+    productName: string;
+    notes: ProcessedNote[];
+    lastUpdated: Date;
+    isRecent: boolean;
+    releaseNotesUrl: string;
+  }
 
-export interface AnalyzedNoteData {
-  productName: string;
-  changeType: string;
-  releaseStage: string;
-  summary: string;
-}
-
-export interface ProcessedNote extends AnalyzedNoteData {
-  id: string;
-  updated: Date;
-  originalTitle: string;
-}
-
-export interface Product {
-  productName: string;
-  notes: ProcessedNote[];
-  lastUpdated: Date;
-  isRecent: boolean;
-}
+  export interface ProductFeed {
+    productName: string;
+    rssUrl: string;
+    releaseNotesUrl: string;
+  }
