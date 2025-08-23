@@ -22,15 +22,13 @@ const getBadgeColor = (type: string) => {
 
 
 const ProductTile: React.FC<ProductTileProps> = ({ product, isFavorite, onToggleFavorite }) => {
-  if (product.notes.length === 0) return null;
-
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.preventDefault(); // Prevent link navigation
     e.stopPropagation();
     onToggleFavorite(product.productName);
   };
 
-  const recentNotes = product.notes.slice(0, 3);
+  const recentNotes = product.notes?.slice(0, 3) || [];
   const productLink = generateProductLink(product.productName);
 
   return (
@@ -44,7 +42,11 @@ const ProductTile: React.FC<ProductTileProps> = ({ product, isFavorite, onToggle
       <div className="mb-2">
         <div className="flex items-start justify-between gap-4">
             <div className="flex items-start gap-3 min-w-0">
-                <ProductIcon className="w-6 h-6 text-slate-400 dark:text-slate-500 flex-shrink-0 mt-1" />
+                {product.iconUrl ? (
+                  <img src={product.iconUrl} alt={`${product.productName} icon`} className="w-6 h-6 mt-1" />
+                ) : (
+                  <ProductIcon className="w-6 h-6 text-slate-400 dark:text-slate-500 flex-shrink-0 mt-1" />
+                )}
                 <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 group-hover:text-cyan-500 dark:group-hover:text-cyan-400 transition-colors">
                     {product.productName}
                 </h2>
@@ -69,26 +71,28 @@ const ProductTile: React.FC<ProductTileProps> = ({ product, isFavorite, onToggle
       </div>
       
       {/* Changes List */}
-      <div className="flex-grow min-h-0 mt-2 space-y-4 border-t border-slate-200 dark:border-slate-700/50 pt-4">
-        {recentNotes.map((note) => (
-          <div key={note.id}>
-            <div className="flex items-center flex-wrap gap-x-3 gap-y-1 mb-1.5">
-              <span className={`px-2 py-0.5 font-semibold rounded-md text-xs whitespace-nowrap ${getBadgeColor(note.changeType)}`}>
-                {note.changeType.toUpperCase()}
-              </span>
-              <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
-                <CalendarIcon className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
-                <span>
-                  {note.updated.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+      {recentNotes.length > 0 && (
+        <div className="flex-grow min-h-0 mt-2 space-y-4 border-t border-slate-200 dark:border-slate-700/50 pt-4">
+          {recentNotes.map((note) => (
+            <div key={note.id}>
+              <div className="flex items-center flex-wrap gap-x-3 gap-y-1 mb-1.5">
+                <span className={`px-2 py-0.5 font-semibold rounded-md text-xs whitespace-nowrap ${getBadgeColor(note.changeType)}`}>
+                  {note.changeType.toUpperCase()}
                 </span>
+                <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+                  <CalendarIcon className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
+                  <span>
+                    {note.updated.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </span>
+                </div>
               </div>
+              <p className="text-sm text-slate-600 dark:text-slate-300 leading-snug">
+                {note.summary}
+              </p>
             </div>
-            <p className="text-sm text-slate-600 dark:text-slate-300 leading-snug">
-              {note.summary}
-            </p>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </a>
   );
 };

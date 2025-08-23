@@ -21,7 +21,9 @@ export interface ProcessedNote extends AnalyzedNoteData {
 
 export interface Product {
   productName: string;
-  notes: ProcessedNote[];
-  lastUpdated: Date;
-  isRecent: boolean;
+  notes?: ProcessedNote[];
+  lastUpdated?: Date;
+  isRecent?: boolean;
+  category: string;
+  iconUrl: string;
 }
