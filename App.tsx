@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import type { ProcessedNote, Product } from './types';
+import { getProducts } from './services/productService';
 import { getAndProcessReleaseNotes } from './services/rssService';
 import Spinner from './components/Spinner';
 import ErrorDisplay from './components/ErrorDisplay';
@@ -22,6 +23,7 @@ const App: React.FC = () => {
   const [viewMode, setViewMode] = useState<'all' | 'favorites'>('all');
   const [selectedChangeType, setSelectedChangeType] = useState<string>('all');
   const [selectedReleaseStage, setSelectedReleaseStage] = useState<string>('all');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [sortOption, setSortOption] = useState<SortOption>('latest');
 
   const [theme, setTheme] = useState<Theme>(() => {
@@ -68,47 +70,64 @@ const App: React.FC = () => {
     });
   }, []);
 
-  const fetchAndGroupNotes = useCallback(async () => {
+  const fetchProductsAndNotes = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const notes = await getAndProcessReleaseNotes();
-      
-      const productsMap: Map<string, Product> = new Map();
+      console.log("Fetching products and notes...");
+      const [productsData, notes] = await Promise.all([
+        getProducts(),
+        getAndProcessReleaseNotes(),
+      ]);
+      console.log("Fetched products data:", productsData);
+      console.log("Fetched notes:", notes);
+
+      const productsMap: Map<string, Product> = new Map(
+        productsData.map(p => [p.productName, { ...p, notes: [], lastUpdated: new Date(0), isRecent: false }])
+      );
+
       const oneWeekAgo = new Date();
       oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
       notes.forEach(note => {
         if (note.productName === 'Unknown Product') return;
 
-        if (!productsMap.has(note.productName)) {
-          productsMap.set(note.productName, {
+        let product = productsMap.get(note.productName);
+
+        // If a product from release notes doesn't exist in our scraped list, add it.
+        // This could happen for new or very specific products not on the main page.
+        if (!product) {
+          product = {
             productName: note.productName,
             notes: [],
             lastUpdated: new Date(0),
             isRecent: false,
-          });
+            category: 'Uncategorized', // Default category
+            iconUrl: '', // No icon available
+          };
+          productsMap.set(note.productName, product);
         }
         
-        const product = productsMap.get(note.productName)!;
-        product.notes.push(note);
+        product.notes!.push(note);
 
-        if (note.updated > product.lastUpdated) {
+        if (note.updated > product.lastUpdated!) {
             product.lastUpdated = note.updated;
         }
       });
 
       // Sort notes within each product and set recent flag
       productsMap.forEach(product => {
-        product.notes.sort((a, b) => b.updated.getTime() - a.updated.getTime());
-        product.isRecent = product.lastUpdated > oneWeekAgo;
+        if (product.notes) {
+            product.notes.sort((a, b) => b.updated.getTime() - a.updated.getTime());
+        }
+        product.isRecent = product.lastUpdated! > oneWeekAgo;
       });
 
       setProducts(Array.from(productsMap.values()));
 
     } catch (err) {
       if (err instanceof Error) {
-        setError(`Failed to load release notes. ${err.message}`);
+        setError(`Failed to load product data. ${err.message}`);
       } else {
         setError('An unknown error occurred.');
       }
@@ -119,19 +138,22 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    fetchAndGroupNotes();
-  }, [fetchAndGroupNotes]);
+    fetchProductsAndNotes();
+  }, [fetchProductsAndNotes]);
 
-  const { changeTypes, releaseStages } = useMemo(() => {
+  const { categories, changeTypes, releaseStages } = useMemo(() => {
+    const cats = new Set<string>();
     const types = new Set<string>();
     const stages = new Set<string>();
     products.forEach(p => {
-        p.notes.forEach(n => {
+        cats.add(p.category);
+        p.notes?.forEach(n => {
             types.add(n.changeType);
             if(n.releaseStage !== 'N/A') stages.add(n.releaseStage);
         })
     });
     return {
+        categories: Array.from(cats).sort(),
         changeTypes: Array.from(types).sort(),
         releaseStages: Array.from(stages).sort()
     };
@@ -151,7 +173,10 @@ const App: React.FC = () => {
         if (selectedChangeType !== 'all' && !product.notes.some(note => note.changeType === selectedChangeType)) {
             return false;
         }
-        if (selectedReleaseStage !== 'all' && !product.notes.some(note => note.releaseStage === selectedReleaseStage)) {
+        if (selectedReleaseStage !== 'all' && !product.notes?.some(note => note.releaseStage === selectedReleaseStage)) {
+            return false;
+        }
+        if (selectedCategory !== 'all' && product.category !== selectedCategory) {
             return false;
         }
         return true;
@@ -270,6 +295,7 @@ const App: React.FC = () => {
                     <option value="alpha-za">Alphabetical (Z-A)</option>
                 </FilterSelect>
 
+                <FilterSelect label="Category" value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)} options={categories} />
                 <FilterSelect label="Change Type" value={selectedChangeType} onChange={e => setSelectedChangeType(e.target.value)} options={changeTypes} />
                 <FilterSelect label="Release Stage" value={selectedReleaseStage} onChange={e => setSelectedReleaseStage(e.target.value)} options={releaseStages} />
              </div>
