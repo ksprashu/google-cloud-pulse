@@ -73,6 +73,8 @@ export async function getProductFeeds(): Promise<ProductFeed[]> {
                     id: product.productName.replace(/\s+/g, '-').toLowerCase(),
                     rssUrl,
                 });
+            } else {
+                console.warn(`Could not derive RSS feed URL for product: "${product.productName}" from URL: ${product.releaseNotesUrl}`);
             }
         }
 
