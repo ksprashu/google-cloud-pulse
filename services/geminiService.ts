@@ -30,16 +30,18 @@ const responseSchema = {
   required: ["productName", "changeType", "releaseStage", "summary"],
 };
 
-export async function analyzeReleaseNote(title: string, summary: string): Promise<AnalyzedNoteData> {
+export async function analyzeReleaseNote(title: string, summary: string, productNameHint?: string): Promise<AnalyzedNoteData> {
   try {
     const prompt = `
       Analyze the following GCP release note content and extract the required information in JSON format.
       The product name should be the specific service, not just "Google Cloud".
+      If a 'productNameHint' is provided, it is the official product name and should be preferred.
       For 'releaseStage', use the official launch stage if specified.
       Create a concise summary of the update in about 10-15 words.
       
       Title: "${title}"
       Summary: "${summary}"
+      ${productNameHint ? `productNameHint: "${productNameHint}"` : ''}
     `;
 
     const response = await ai.models.generateContent({

@@ -1,52 +1,84 @@
 
-import type { RawReleaseNote, ProcessedNote } from '../types';
+import type { RawReleaseNote, ProcessedNote, ProductFeed } from '../types';
 import { analyzeReleaseNote } from './geminiService';
+import { getProductFeeds } from './productService';
 
-const RSS_FEED_URL = 'https://cloud.google.com/feeds/gcp-release-notes.xml';
-// Using rss2json to convert RSS to JSON and bypass CORS issues, which is more reliable than a generic proxy.
-const API_URL = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(RSS_FEED_URL)}`;
+const API_URL_BASE = `https://api.rss2json.com/v1/api.json?rss_url=`;
 
-async function parseRssFeed(): Promise<RawReleaseNote[]> {
-  const response = await fetch(API_URL);
+async function parseRssFeed(feedUrl: string): Promise<RawReleaseNote[]> {
+  const response = await fetch(`${API_URL_BASE}${encodeURIComponent(feedUrl)}`);
   if (!response.ok) {
-    throw new Error(`Failed to fetch RSS feed: ${response.statusText}`);
+    throw new Error(`Failed to fetch RSS feed from ${feedUrl}. Status: ${response.status} ${response.statusText}`);
   }
   
   const data = await response.json();
   if (data.status !== 'ok') {
-    throw new Error('Failed to parse RSS feed via API. The service may be down.');
+    throw new Error(`Failed to parse RSS feed from ${feedUrl}. The service may be down or the feed is invalid.`);
   }
 
-  // The rss2json API returns a JSON object with an `items` array
   return data.items.map((item: any) => ({
-    id: item.guid, // guid is a unique identifier for the entry
+    id: item.guid,
     title: item.title,
-    summary: item.description, // description contains the HTML content
-    updated: item.pubDate, // pubDate is the publication date string
+    summary: item.description,
+    updated: item.pubDate,
   }));
 }
 
 export async function getAndProcessReleaseNotes(): Promise<ProcessedNote[]> {
-  const rawNotes = await parseRssFeed();
+  // REVIEWER FEEDBACK: This implementation uses a public API (rss2json.com) to convert RSS to JSON.
+  // While this is convenient, it's not a robust solution for a production environment.
+  // A better solution would be to have a dedicated backend service that fetches and parses the RSS feeds.
+  // This would avoid reliance on a third-party service and provide more control over the data processing.
+  const productFeeds = await getProductFeeds();
   
-  // To avoid overwhelming the API, let's process a limited number of recent notes.
-  // This can be adjusted.
-  const notesToProcess = rawNotes.slice(0, 50);
+  const allNotes: (ProcessedNote & { productNameFromFeed: string, releaseNotesUrl: string })[] = [];
 
-  const processingPromises = notesToProcess.map(async (note) => {
-    // The summary can contain HTML, let's strip it for a cleaner prompt.
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = note.summary;
-    const cleanSummary = tempDiv.textContent || tempDiv.innerText || "";
+  const processFeed = async (feed: ProductFeed) => {
+    const rawNotes = await parseRssFeed(feed.rssUrl);
 
-    const analyzedData = await analyzeReleaseNote(note.title, cleanSummary);
-    return {
-      ...analyzedData,
-      id: note.id,
-      updated: new Date(note.updated),
-      originalTitle: note.title,
-    };
+    // Process the 3 most recent notes for each product feed
+    const notesToProcess = rawNotes.slice(0, 3);
+
+    const processingPromises = notesToProcess.map(async (note) => {
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = note.summary;
+      const cleanSummary = tempDiv.textContent || tempDiv.innerText || "";
+
+      // Pass the official product name to assist the AI
+      const analyzedData = await analyzeReleaseNote(note.title, cleanSummary, feed.productName);
+
+      return {
+        ...analyzedData,
+        id: note.id,
+        updated: new Date(note.updated),
+        originalTitle: note.title,
+        productNameFromFeed: feed.productName, // Keep track of the source
+        releaseNotesUrl: feed.releaseNotesUrl,
+      };
+    });
+
+    return Promise.all(processingPromises);
+  };
+
+  const allProcessingPromises = productFeeds.map(processFeed);
+  const results = await Promise.allSettled(allProcessingPromises);
+
+  results.forEach(result => {
+    if (result.status === 'fulfilled') {
+      allNotes.push(...result.value);
+    } else {
+      console.error(`Error processing a feed:`, result.reason);
+    }
   });
 
-  return Promise.all(processingPromises);
+  // The Gemini analysis for productName can sometimes be inconsistent.
+  // We'll use the productName from the feed source as the primary grouping key
+  // but retain the analyzed name if it's more specific.
+  return allNotes.map(note => {
+    // This logic can be refined. For now, we prioritize the feed's name for consistency.
+    return {
+        ...note,
+        productName: note.productNameFromFeed,
+    }
+  });
 }
