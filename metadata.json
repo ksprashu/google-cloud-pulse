@@ -1,0 +1,5 @@
+{
+  "name": "Google Cloud Pulse",
+  "description": "An application that fetches and analyzes Google Cloud Platform release notes from an RSS feed, categorizes them using AI, and displays them in a user-friendly tiled interface.",
+  "requestFramePermissions": []
+}
