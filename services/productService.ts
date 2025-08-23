@@ -46,12 +46,21 @@ function deriveRssFeedUrl(releaseNotesUrl: string): string | null {
 }
 
 export async function getProductFeeds(): Promise<ProductFeed[]> {
+    // REVIEWER FEEDBACK: The following implementation uses a public CORS proxy
+    // and client-side HTML parsing. This is not robust for a production environment.
+    // A better solution would be to have a dedicated backend service that scrapes
+    // the Google Cloud release notes page, parses the HTML, and serves the data as a JSON API.
+    // This would avoid the need for a CORS proxy and would be more resilient to changes
+    // in the page structure.
     try {
         const response = await fetch(`${PROXY_URL}${ALL_PRODUCTS_URL}`);
         if (!response.ok) {
-            throw new Error(`Failed to fetch product list: ${response.statusText}`);
+            throw new Error(`Failed to fetch product list from ${ALL_PRODUCTS_URL}. Status: ${response.status} ${response.statusText}`);
         }
         const html = await response.text();
+        if (!html) {
+            throw new Error("Empty HTML content received from the proxy.");
+        }
         const rawProductList = parseProductList(html);
 
         const productFeeds: ProductFeed[] = [];
