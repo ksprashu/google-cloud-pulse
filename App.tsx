@@ -114,7 +114,6 @@ const App: React.FC = () => {
       } else {
         setError('An unknown error occurred.');
       }
-      console.error(err);
     } finally {
       setIsLoading(false);
     }
