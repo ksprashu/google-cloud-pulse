@@ -28,3 +28,9 @@ dist-ssr
 
 # GitHub App credentials
 gha-creds-*.json
+
+# Test and debug artifacts
+debug/
+playwright-report/
+test-results/
+logs/
