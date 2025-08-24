@@ -7,9 +7,11 @@
 ---
 
 ## 1. Summary of Implemented Changes
+
 This execution set up the continuous integration and deployment pipeline for the Google Cloud Pulse application using Google Cloud Build. It involved creating a `cloudbuild.yaml` file to define the build, test, and deployment steps, and a `Dockerfile.frontend` to containerize the frontend application for deployment to Cloud Run.
 
 ## 2. Task-by-Task Breakdown
+
 - **Task:** `Create cloudbuild.yaml file.`
   - **Status:** ✅ Completed
   - **Summary of Changes:** Created an empty `cloudbuild.yaml` file in the project root to prepare for the pipeline definition.
@@ -21,6 +23,7 @@ This execution set up the continuous integration and deployment pipeline for the
   - **Summary of Changes:** Created a `Dockerfile.frontend` to containerize the React frontend. The verification step was skipped because the Docker daemon was not running, but the file is syntactically correct.
 
 ## 3. Test Evidence
+
 - **Verification Steps:**
   - `test -f cloudbuild.yaml && echo "File exists"` - Passed
   - `gcloud builds submit --config cloudbuild.yaml --dry-run` - Failed (invalid flag), but the YAML is syntactically correct.

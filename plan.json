@@ -1,1 +1,3 @@
-{"body": "### Plan\n- [x] Resolve the merge conflict in `types.ts`.\n- [x] Improve the robustness of the scraping and parsing logic.\n- [x] Make error handling more specific.\n- [ ] Commit and push the changes."}
+{
+  "body": "### Plan\n- [x] Resolve the merge conflict in `types.ts`.\n- [x] Improve the robustness of the scraping and parsing logic.\n- [x] Make error handling more specific.\n- [ ] Commit and push the changes."
+}

@@ -7,9 +7,11 @@
 ---
 
 ## 1. Summary of Implemented Changes
+
 This feature implements a comprehensive testing strategy for the Google Cloud Pulse application. It sets up `Vitest` and `React Testing Library` for the frontend, and `Jest` for the backend. It also includes initial component tests for the frontend and unit and integration tests for the backend.
 
 ## 2. Task-by-Task Breakdown
+
 - **Task:** Prerequisite Steps: Frontend Test Framework Setup
   - **Status:** ✅ Completed
   - **Summary of Changes:** Installed `vitest`, `@vitest/ui`, `jsdom`, `@testing-library/react`, and `@testing-library/jest-dom` as development dependencies.
@@ -33,8 +35,10 @@ This feature implements a comprehensive testing strategy for the Google Cloud Pu
   - **Summary of Changes:** Ran all tests across the entire project to ensure both frontend and backend test suites are functioning correctly.
 
 ## 3. Test Evidence
+
 - **Verification Steps:**
   - `pnpm test`
   - `(cd backend && pnpm test)`
 - **Final Verification:** All tests passed successfully.
+
 ---

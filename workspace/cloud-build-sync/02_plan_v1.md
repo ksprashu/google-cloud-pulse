@@ -3,6 +3,7 @@
 **Source Analysis:** `/Users/ksprashanth/code/github/google-cloud-pulse/workspace/cloud-build-sync/01_analysis_v1.md`
 
 ## 1. Prerequisite Steps
+
 - **Objective:** Create a `cloudbuild.yaml` file in the root of the project.
 - **Instructions:**
   - Create a new file named `cloudbuild.yaml` in the root of the project.
@@ -14,6 +15,7 @@
 ## 2. Implementation Tasks
 
 ### Task 1: Define the Cloud Build Pipeline
+
 - **Objective:** Define the steps for the Cloud Build pipeline in the `cloudbuild.yaml` file.
 - **File(s) to Modify:**
   - `cloudbuild.yaml`
@@ -36,6 +38,7 @@
   ```
 
 ### Task 2: Create a Dockerfile for the Frontend
+
 - **Objective:** Create a Dockerfile for the frontend application.
 - **File(s) to Modify:**
   - `Dockerfile.frontend`
@@ -48,6 +51,7 @@
   ```
 
 ## 3. Final Verification
+
 - **Objective:** Trigger the Cloud Build pipeline and verify that the application is deployed successfully.
 - **Instructions:**
   - Push the changes to the GitHub repository.

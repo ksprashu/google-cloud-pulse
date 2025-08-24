@@ -7,9 +7,11 @@
 ---
 
 ## 1. Summary of Implemented Changes
+
 This execution successfully refactored the Google Cloud Pulse application to separate the frontend and backend concerns. A new Node.js backend was created with an API service to serve release notes and a batch job to process and store them in Firestore. The frontend was updated to fetch data from this new API, and Dockerfiles were created for containerizing the backend services.
 
 ## 2. Task-by-Task Breakdown
+
 - **Task:** Create Backend API Service
   - **Status:** ✅ Completed
   - **Summary of Changes:** An Express server was created in `backend/src/index.ts` and an API router in `backend/src/api.ts` to serve release notes data.
@@ -27,6 +29,7 @@ This execution successfully refactored the Google Cloud Pulse application to sep
   - **Summary of Changes:** Ensured that both the frontend and backend applications build successfully.
 
 ## 3. Test Evidence
+
 - **Verification Steps:**
   - `pnpm -C backend exec tsc --noEmit`
   - `ls backend/Dockerfile.api backend/Dockerfile.batch backend/.dockerignore`

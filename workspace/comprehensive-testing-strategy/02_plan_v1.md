@@ -15,6 +15,7 @@
 ## 2. Implementation Tasks
 
 ### Task 1: Configure Frontend Testing
+
 - **Objective:** Configure Vite and TypeScript to recognize the new testing framework and add a test script.
 - **File(s) to Modify:**
   - `vite.config.ts`
@@ -31,6 +32,7 @@
   ```
 
 ### Task 2: Write Frontend Component Tests
+
 - **Objective:** Create initial component tests to ensure the testing setup is working correctly and to establish a testing pattern.
 - **File(s) to Modify:**
   - `components/ProductTile.test.tsx`
@@ -44,6 +46,7 @@
   ```
 
 ### Task 3: Prerequisite Steps: Backend Test Framework Setup
+
 - **Objective:** Install and configure `Jest` for the backend application.
 - **File(s) to Modify:**
   - `backend/package.json`
@@ -55,6 +58,7 @@
   ```
 
 ### Task 4: Configure Backend Testing
+
 - **Objective:** Configure Jest to work with TypeScript and add a test script.
 - **File(s) to Modify:**
   - `backend/jest.config.js`
@@ -68,6 +72,7 @@
   ```
 
 ### Task 5: Write Backend Unit & Integration Tests
+
 - **Objective:** Create initial unit and integration tests for the backend to validate the setup and test critical logic.
 - **File(s) to Modify:**
   - `backend/src/rssProcessor.test.ts`
@@ -81,6 +86,7 @@
   ```
 
 ## 3. Final Verification
+
 - **Objective:** Run all tests across the entire project to ensure both frontend and backend test suites are functioning correctly.
 - **Instructions:**
   - Execute the frontend tests.

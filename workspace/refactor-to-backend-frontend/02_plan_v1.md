@@ -3,6 +3,7 @@
 **Source Analysis:** `/Users/ksprashanth/code/github/google-cloud-pulse/workspace/refactor-to-backend-frontend/01_analysis_v1.md`
 
 ## 1. Prerequisite Steps
+
 - **Objective:** Set up the directory structure and initialize a new Node.js project for the backend service.
 - **Instructions:**
   - Create a new directory named `backend` in the root of the project.
@@ -18,6 +19,7 @@
 ## 2. Implementation Tasks
 
 ### Task 1: Create Backend API Service
+
 - **Objective:** Implement a basic Express server to serve the release notes data.
 - **File(s) to Modify:**
   - `backend/src/api.ts`
@@ -33,6 +35,7 @@
   ```
 
 ### Task 2: Create Backend Batch Job
+
 - **Objective:** Implement the logic to fetch, process, and store the release notes.
 - **File(s) to Modify:**
   - `backend/src/batch-process.ts`
@@ -49,6 +52,7 @@
   ```
 
 ### Task 3: Dockerize Backend Services
+
 - **Objective:** Create Dockerfiles to containerize the API service and the batch job for deployment on Cloud Run.
 - **File(s) to Modify:**
   - `backend/Dockerfile.api`
@@ -64,6 +68,7 @@
   ```
 
 ### Task 4: Refactor Frontend Application
+
 - **Objective:** Remove the old data services from the frontend and modify the main App component to fetch data from the new backend API.
 - **File(s) to Modify:**
   - `App.tsx`
@@ -80,6 +85,7 @@
   ```
 
 ## 3. Final Verification
+
 - **Objective:** Ensure the entire refactored application builds successfully.
 - **Instructions:**
   - This step confirms that both the frontend and backend TypeScript code compiles without errors, indicating that the refactoring is syntactically correct.

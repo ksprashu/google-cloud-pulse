@@ -10,6 +10,12 @@ steps:
     args: ['install']
     dir: '.'
 
+  # Lint the codebase
+  - name: 'gcr.io/cloud-builders/npm'
+    entrypoint: 'pnpm'
+    args: ['run', 'lint']
+    dir: '.'
+
   # Build the frontend
   - name: 'gcr.io/cloud-builders/npm'
     entrypoint: 'pnpm'
