@@ -1,0 +1,12 @@
+# Ignore artifacts
+dist
+node_modules
+pnpm-lock.yaml
+
+# Ignore logs
+logs
+*.log
+
+# Ignore test results
+test-results
+playwright-report
