@@ -1,0 +1,92 @@
+steps:
+  # Install pnpm
+  - name: 'gcr.io/cloud-builders/npm'
+    entrypoint: 'npx'
+    args: ['pnpm', 'install']
+
+  # Install frontend dependencies
+  - name: 'gcr.io/cloud-builders/npm'
+    entrypoint: 'pnpm'
+    args: ['install']
+    dir: '.'
+
+  # Build the frontend
+  - name: 'gcr.io/cloud-builders/npm'
+    entrypoint: 'pnpm'
+    args: ['run', 'build']
+    dir: '.'
+
+  # Run frontend tests
+  - name: 'gcr.io/cloud-builders/npm'
+    entrypoint: 'pnpm'
+    args: ['run', 'test']
+    dir: '.'
+
+  # Install backend dependencies
+  - name: 'gcr.io/cloud-builders/npm'
+    entrypoint: 'pnpm'
+    args: ['install']
+    dir: 'backend'
+
+  # Build the backend API
+  - name: 'gcr.io/cloud-builders/npm'
+    entrypoint: 'pnpm'
+    args: ['run', 'build']
+    dir: 'backend'
+
+  # Build the backend batch process
+  - name: 'gcr.io/cloud-builders/npm'
+    entrypoint: 'pnpm'
+    args: ['run', 'build:batch']
+    dir: 'backend'
+
+  # Run backend tests
+  - name: 'gcr.io/cloud-builders/npm'
+    entrypoint: 'pnpm'
+    args: ['run', 'test']
+    dir: 'backend'
+
+  # Deploy the frontend to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'google-cloud-pulse-frontend'
+      - '--source'
+      - '.'
+      - '--region'
+      - 'us-central1'
+      - '--allow-unauthenticated'
+      - '--project'
+      - '$PROJECT_ID'
+
+  # Deploy the backend API to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'google-cloud-pulse-api'
+      - '--source'
+      - './backend'
+      - '--region'
+      - 'us-central1'
+      - '--allow-unauthenticated'
+      - '--project'
+      - '$PROJECT_ID'
+
+  # Deploy the backend batch process to Cloud Run Batch
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'gcloud'
+    args:
+      - 'batch'
+      - 'jobs'
+      - 'submit'
+      - 'google-cloud-pulse-batch'
+      - '--config'
+      - './backend/batch-job.json'
+      - '--location'
+      - 'us-central1'
+      - '--project'
+      - '$PROJECT_ID'
