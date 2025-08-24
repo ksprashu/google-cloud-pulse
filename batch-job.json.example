@@ -1,0 +1,22 @@
+{
+  "run": {
+    "taskCount": 1,
+    "parallelism": 1,
+    "taskSpec": {
+      "template": {
+        "container": {
+          "imageUri": "europe-west2-docker.pkg.dev/gcp-project-dev-424612/gcp-project-dev-424612-cr-pulse-repo/google-cloud-pulse-batch",
+          "resources": {
+            "cpuMilli": 1000,
+            "memoryMb": 512
+          }
+        },
+        "maxRetries": 3,
+        "timeout": "3600s"
+      }
+    }
+  },
+  "labels": {
+    "goog-batch-job-id": "gcp-project-dev-424612-cr-pulse-batch-job"
+  }
+}
