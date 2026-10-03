@@ -34,3 +34,8 @@ debug/
 playwright-report/
 test-results/
 logs/
+
+# Environment variables
+.env
+.env.*
+.env.local
